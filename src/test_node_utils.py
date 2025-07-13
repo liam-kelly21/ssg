@@ -418,5 +418,108 @@ class TestBlockToBlockType(unittest.TestCase):
         self.assertEqual(block_to_block_type(testol),BlockType.ORDERED_LIST)
         self.assertEqual(block_to_block_type("I'm just some text!"),BlockType.PARAGRAPH)
 
+class TestMDToHTML(unittest.TestCase):
+    def test_paragraphs(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
+This is another paragraph with _italic_ text and `code` here
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
+        )
+
+    def test_codeblock(self):
+        md = """
+```
+This is text that _should_ remain
+the **same** even with inline stuff
+```
+"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
+        )
+
+    def test_lists(self):
+        md = """
+This is an unordered list:
+
+- Item 1
+- _Item 2_
+- Item 3
+- **Item 4**
+
+This is an ordered list:
+
+1. _item 1_
+2. **item 2**
+3. item 3
+
+This is a quote:
+
+>`quote line 1`
+>quote line 2
+>quote **line 3**
+"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is an unordered list:</p><ul><li>Item 1</li><li><i>Item 2</i></li><li>Item 3</li><li><b>Item 4</b></li></ul><p>This is an ordered list:</p><ol><li><i>item 1</i></li><li><b>item 2</b></li><li>item 3</li></ol><p>This is a quote:</p><blockquote><code>quote line 1</code> quote line 2 quote <b>line 3</b></blockquote></div>",
+        )
+
+    def test_headings(self):
+        md = """
+# H1
+
+## H2
+
+### H3
+
+#### H4
+
+##### H5
+
+###### H6
+
+####### H7
+"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><h1>H1</h1><h2>H2</h2><h3>H3</h3><h4>H4</h4><h5>H5</h5><h6>H6</h6><p>####### H7</p></div>",
+        )
+
+class TestExtractTitle(unittest.TestCase):
+    def test_base(self):
+        res = extract_title("# Hello World! ")
+        exp = "Hello World!"
+        self.assertEqual(res,exp)
+    
+    def test_lines(self):
+        res = extract_title(
+'''# Hello World! 
+This is some content.
+This is some more content.
+            '''
+            )
+        exp = "Hello World!"
+        self.assertEqual(res,exp)
+    
+    def test_exception(self):
+        with self.assertRaisesRegex(Exception,"Markdown does not begin with a title"):
+            extract_title("Hello World!")
+
 if __name__ == "__main__":
     unittest.main()

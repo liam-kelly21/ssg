@@ -36,6 +36,8 @@ class HTMLNode():
 
     def props_to_html(self):
         attributes = ""
+        if self.props is None:
+            return None
         for attribute in self.props:
             attributes += (" " + attribute + "=\"" + self.props[attribute] + "\"")
         return attributes
@@ -69,7 +71,7 @@ class LeafNode(HTMLNode):
     
     def to_html(self):
         if not self.value:
-            raise ValueError
+            self.value = ""
         if not self.tag:
             return str(self.value)
         properties = ""

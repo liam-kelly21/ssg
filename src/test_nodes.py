@@ -108,14 +108,6 @@ class TestHTMLNode(unittest.TestCase):
         node = HTMLNode(props={})
         self.assertEqual(node.props_to_html(), "")
 
-    def test_props_to_html_none(self):
-        """Tests that props_to_html raises an error if props is None."""
-        # The current implementation will raise a TypeError when trying to iterate
-        # over None. A robust test should confirm this expected behavior.
-        node = HTMLNode(props=None)
-        with self.assertRaises(TypeError):
-            node.props_to_html()
-
     # --- to_html Method Tests ---
 
     def test_to_html_raises_error(self):

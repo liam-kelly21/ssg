@@ -123,76 +123,80 @@ def block_to_block_type(block):
     
     return BlockType.PARAGRAPH
 
-
-'''Create a new function called def markdown_to_html_node(markdown): that converts a full markdown document into a single parent HTMLNode. That one parent HTMLNode should (obviously) contain many child HTMLNode objects representing the nested elements.
-
-FYI: I created an additional 8 helper functions to keep my code neat and easy to understand, because there's a lot of logic necessary for markdown_to_html_node. I don't want to give you my exact functions because I want you to do this from scratch. However, I'll give you the basic order of operations:
-
-    Split the markdown into blocks (you already have a function for this)
-    Loop over each block:
-        Determine the type of block (you already have a function for this)
-        Based on the type of block, create a new HTMLNode with the proper data
-        Assign the proper child HTMLNode objects to the block node. I created a shared text_to_children(text) function that works for all block types. It takes a string of text and returns a list of HTMLNodes that represent the inline markdown using previously created functions (think TextNode -> HTMLNode).
-        The "code" block is a bit of a special case: it should not do any inline markdown parsing of its children. I didn't use my text_to_children function for this block type, I manually made a TextNode and used text_node_to_html_node.
-    Make all the block nodes children under a single parent HTML node (which should just be a div) and return it.'''
-
 def markdown_to_html_node(markdown):
     html_nodes = []
     for block in markdown_to_blocks(markdown):
         match block_to_block_type(block):
             case BlockType.PARAGRAPH:
-                html_nodes.append(LeafNode("p",block))
-                #this might have bold/italics nested tho
+                #inline formatting
+                block = block.replace('\n', ' ')
+                children = text_to_children(block)
+                #apply tag
+                html_nodes.append(ParentNode("p",children))
             case BlockType.HEADING:
+                #strip
+                block = block.replace('\n', ' ')
                 count = len(re.match(r'^#+', block).group(0))
                 head_text = block.lstrip("# ")
-                html_nodes.append(LeafNode(f"h{count}",head_text))
+                #inline formatting
+                children = text_to_children(head_text)
+                #apply tag
+                html_nodes.append(ParentNode(f"h{count}",children))
             case BlockType.CODE:
+                #strip
                 block = block.strip("`")
+                block = block.lstrip("\n")
+                #apply tags
                 code_text = LeafNode("code",block)
-                html_nodes.append(ParentNode("pre",code_text))
+                html_nodes.append(ParentNode("pre",[code_text]))
             case BlockType.QUOTE:
-                lines = block.splitlines(keepends=True) # keepends preserves newline chars
-                modified_lines = []
-                for line in lines:
-                    if line.startswith(">"):
-                        modified_lines.append(line[1:])
-                    else:
-                        modified_lines.append(line)
-                quote_text = "".join(modified_lines)
-                html_nodes.append(LeafNode("blockquote",quote_text))
+                #strip
+                quote_text = ("".join(striplines(block,1))).strip()
+                #inline formatting
+                children = text_to_children(quote_text)
+                html_nodes.append(ParentNode("blockquote",children))
             case BlockType.UNORDERED_LIST:
-                pass
+                #strip
+                ul_text = striplines(block,2)
+                #apply tags
+                children = []
+                for line in ul_text:
+                    sub_children = text_to_children(line)
+                    children.append(ParentNode("li",sub_children))
+                html_nodes.append(ParentNode("ul",children))
             case BlockType.ORDERED_LIST:
-                pass
+                #strip
+                ol_text = striplines(block,3)
+                #apply tags
+                children = []
+                for line in ol_text:
+                    sub_children = text_to_children(line)
+                    children.append(ParentNode("li",sub_children))
+                html_nodes.append(ParentNode("ol",children))
             case _:
                 raise Exception("Incorrect block type")
             
     return ParentNode("div",html_nodes)
 
-# take text
-# return 
+def striplines(text,chars):
+    lines = text.splitlines(keepends=False)
+    modified_lines = []
+    for line in lines:
+        modified_lines.append(line[chars:])
+    return modified_lines
 
-'''
-create a 
-text to textnodes -> textnode to htmlnode can take raw text and produce HTML leaf nodes.
+def text_to_children(text):
+    text_nodes = text_to_textnodes(text)
+    html_nodes = []
+    for node in text_nodes:
+        html_nodes.append(text_node_to_html_node(node))
+    return html_nodes
 
-PARAGRAPH = "paragraph"
-HEADING = "heading"
-CODE = "code"
-QUOTE = "quote"
-UNORDERED_LIST = "unordered_list"
-ORDERED_LIST = "ordered_list"
-
-
-Quote blocks should be surrounded by a <blockquote> tag.
-Unordered list blocks should be surrounded by a <ul> tag, and each list item should be surrounded by a <li> tag.
-Ordered list blocks should be surrounded by a <ol> tag, and each list item should be surrounded by a <li> tag.
-Code blocks should be surrounded by a <code> tag nested inside a <pre> tag.
-Headings should be surrounded by a <h1> to <h6> tag, depending on the number of # characters.
-Paragraphs should be surrounded by a <p> tag.
-'''
-    
+def extract_title(md):
+    if re.search(r"^# ",md):
+        return md.splitlines()[0].lstrip("#").strip()
+    else:
+        raise Exception("Markdown does not begin with a title")
 
 #helper functions created due to assignment structure - used in test cases, but unused in actual functionality
 def split_nodes_image(old_nodes):
