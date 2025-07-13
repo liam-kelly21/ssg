@@ -1,0 +1,1 @@
+python3 src/main.py "https://github.com/liam-kelly21/ssg"
